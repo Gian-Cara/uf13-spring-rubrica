@@ -1,92 +1,71 @@
 package it.marconi.rubrica.controllers;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import it.marconi.rubrica.domain.Contact;
 import it.marconi.rubrica.domain.ContactForm;
+import it.marconi.rubrica.dto.APIResponse;
+import it.marconi.rubrica.dto.ContactDTO;
 import it.marconi.rubrica.services.ContactService;
 import jakarta.validation.Valid;
 
-@Controller
+@RestController
+@RequestMapping("/api/contacts") // Endpoint base per i contatti
 public class ContactController {
     
-    // dependency injection
     @Autowired
     private ContactService contactService;
 
+    // 1. Prendi tutti i contatti 
     @GetMapping
-    public ModelAndView showContactList() {
-        // passo alla webpage la lista dei contatti letta dal db
-        return new ModelAndView("contact-list")
-            .addObject("contacts", contactService.findAll());
+    public APIResponse<List<ContactDTO>> showContactList() {
+        List<ContactDTO> dtos = contactService.findAll().stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+            
+        return new APIResponse<>("success", dtos, null);
     }
 
-    // endpoint per la richiesta GET, mi deve mostrare il form di inserimento
-    @GetMapping("/new")
-    public ModelAndView newContactForm() {
-        // passo una istanza vuota del form alla pagina web          // contactForm
-        return new ModelAndView("contact-form").addObject(new ContactForm());
+    // 2. Salva un nuovo contatto 
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public APIResponse<ContactDTO> handleNewContact(@RequestBody @Valid ContactForm contactForm) {
+        // Abbiamo tolto BindingResult: se ci sono errori ci pensa il GlobalExceptionHandler (400 Bad Request)
+        Contact savedContact = contactService.save(contactForm);
+        return new APIResponse<>("success", convertToDTO(savedContact), null);
     }
 
-    // endpoint per la richiesta POST, deve salvare il contatto nel DB
-    @PostMapping("/new") 
-    public ModelAndView handleNewContact(
-        @ModelAttribute @Valid ContactForm contactForm,
-        BindingResult br,        // esito della validazione (subito dopo parametro da validare)
-        RedirectAttributes attr
-    ) {
-
-        // controllo l'esito della validazione
-        if (br.hasErrors())
-            return new ModelAndView("contact-form");
-
-        Contact c = contactService.save(contactForm);
-
-        // aggiungo un parametro speciale che sopravviva al redirect
-        attr.addFlashAttribute("newContact", true);
-
-        return new ModelAndView("redirect:/contact?id=" + c.getId()); 
+    // 3. Prendi un singolo contatto tramite ID nell'URL 
+    @GetMapping("/{id}")
+    public APIResponse<ContactDTO> showContact(@PathVariable("id") UUID contactId) {
+        Contact contact = contactService.get(contactId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contatto non trovato"));
+            
+        return new APIResponse<>("success", convertToDTO(contact), null);
     }
 
-    // pattern PRG
-    @GetMapping(path = "contact", params = "id")
-    public ModelAndView showContact(@RequestParam("id") UUID contactId) {
-
-        Optional<Contact> opContact = contactService.get(contactId);
-
-        // controllo se il dato è presente
-        if (opContact.isPresent()) {
-            return new ModelAndView("contact-detail")
-                .addObject("contact", opContact.get());
-        }
-        else 
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Contatto non trovato");
-    }
-
-    @GetMapping("contact/delete/{id}")
-    public ModelAndView deleteContact(
-        @PathVariable("id") UUID contactId,
-        RedirectAttributes attr
-    ) {
-
+    // 4. Elimina un contatto
+    @DeleteMapping("/{id}")
+    public APIResponse<Void> deleteContact(@PathVariable("id") UUID contactId) {
         contactService.deleteById(contactId);
+        return new APIResponse<>("success", null, null);
+    }
 
-        // attributo per feedback eliminazione
-        attr.addFlashAttribute("deleted", true);
-        return new ModelAndView("redirect:/");
+    // Metodo di comodo per trasformare l'Entità in DTO 
+    private ContactDTO convertToDTO(Contact contact) {
+        ContactDTO dto = new ContactDTO();
+        dto.setId(contact.getId());
+        dto.setName(contact.getName());
+        dto.setSurname(contact.getSurname());
+        dto.setPhone(contact.getPhone());
+        dto.setEmail(contact.getEmail());
+        return dto;
     }
 }

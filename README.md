@@ -7,7 +7,7 @@ Applicazione Spring per la gestione di una rubrica di contatti tramite database 
 - Spring DevTools (opzionale, gestisce il riavvio rapido dell'applicazione)
 - Thymeleaf (templating HTML per pagine dinamiche)
 - Spring Data JPA (tecnologia di gestione dei database)
-- Driver MySQL (connettore al DBMS)
+- Driver MySQL (connettore al DBMS) 
 - Validator (validazione dei form)
 - Lombok (boilerplate code)
 - Webjar Locator (gestione pacchetti)
@@ -96,3 +96,7 @@ INSERT INTO tabella (...) VALUES (...);
 ```bash
 exit
 ```
+---
+## 📑 Documentazione d'Esame
+La relazione tecnica ufficiale che descrive le scelte progettuali, i criteri di accettazione e l'architettura delle Task sviluppate è disponibile al seguente link:
+* [Leggi la Relazione Tecnica (docs/RELAZIONE.md)](docs/RELAZIONE.md)

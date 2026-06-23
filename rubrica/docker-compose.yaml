@@ -1,17 +1,36 @@
+version: '3.8'
+
 services:
   mysql-db:
     image: mysql:9.0
     container_name: mysql_container
-    environment:
-      MYSQL_DATABASE: rubrica_db
-      MYSQL_ROOT_PASSWORD: root
     ports:
-      - "3306:3306" # mappa la porta del container alla stessa porta di codespace
-    networks:
-      - app-network
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rubrica_db
+    volumes:
+      - mysql_data:/var/lib/mysql
 
-  # spring-backend:
+  # Task 3: Servizio Prometheus per la raccolta metriche
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_container
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
-networks:
-  app-network:
-    driver: bridge
+  # Task 3: Servizio Grafana per la cabina di regia visiva
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_container
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+volumes:
+  mysql_data:

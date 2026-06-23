@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s # Effettua lo scraping ogni 5 secondi (richiesto intervallo regolare)
+
+scrape_configs:
+  - job_name: 'spring-boot-actuator'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      # host.docker.internal permette al container prometheus di parlare con l'app Spring Boot
+      - targets: ['host.docker.internal:8080']
